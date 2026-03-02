@@ -3,6 +3,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { z } from "zod";
 
+import { tool as asmBitwiseTool } from "./tools/asm_bitwise.js";
+import { tool as asmFlagsTool } from "./tools/asm_flags.js";
+import { tool as asmMemoryTool } from "./tools/asm_memory.js";
 import { tool as baseTool } from "./tools/base.js";
 
 const require = createRequire(import.meta.url);
@@ -59,6 +62,9 @@ const tools: ToolDefinition[] = [
 	jwtDecodeTool,
 	urlParseTool,
 	semverTool,
+	asmBitwiseTool,
+	asmMemoryTool,
+	asmFlagsTool,
 ];
 
 const server = new McpServer({
