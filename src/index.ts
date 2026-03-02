@@ -4,8 +4,14 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { z } from "zod";
 
 import { tool as asmBitwiseTool } from "./tools/asm_bitwise.js";
+import { tool as asmEncodingTool } from "./tools/asm_encoding.js";
 import { tool as asmFlagsTool } from "./tools/asm_flags.js";
+import { tool as asmFloatTool } from "./tools/asm_float.js";
 import { tool as asmMemoryTool } from "./tools/asm_memory.js";
+import { tool as asmNumbersTool } from "./tools/asm_numbers.js";
+import { tool as asmRegistersTool } from "./tools/asm_registers.js";
+import { tool as asmStackTool } from "./tools/asm_stack.js";
+import { tool as asmStructTool } from "./tools/asm_struct.js";
 import { tool as baseTool } from "./tools/base.js";
 
 const require = createRequire(import.meta.url);
@@ -65,6 +71,12 @@ const tools: ToolDefinition[] = [
 	asmBitwiseTool,
 	asmMemoryTool,
 	asmFlagsTool,
+	asmEncodingTool,
+	asmRegistersTool,
+	asmNumbersTool,
+	asmStructTool,
+	asmFloatTool,
+	asmStackTool,
 ];
 
 const server = new McpServer({

@@ -55,14 +55,20 @@ async function callToolRaw(name, args) {
 // ─── Tool listing ───
 
 describe("MCP Server E2E", () => {
-	it("lists all 24 tools", async () => {
+	it("lists all 30 tools", async () => {
 		const result = await client.listTools();
-		assert.equal(result.tools.length, 24);
+		assert.equal(result.tools.length, 30);
 		const names = result.tools.map((t) => t.name).sort();
 		assert.deepEqual(names, [
 			"asm_bitwise",
+			"asm_encoding",
 			"asm_flags",
+			"asm_float",
 			"asm_memory",
+			"asm_numbers",
+			"asm_registers",
+			"asm_stack",
+			"asm_struct",
 			"base",
 			"base64",
 			"char_info",
