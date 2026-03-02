@@ -18,6 +18,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { z } from "zod";
 
+import { tool as asmArm64Tool } from "./tools/asm_arm64.js";
 import { tool as asmBitwiseTool } from "./tools/asm_bitwise.js";
 import { tool as asmEncodingTool } from "./tools/asm_encoding.js";
 import { tool as asmFlagsTool } from "./tools/asm_flags.js";
@@ -96,6 +97,7 @@ const tools: ToolDefinition[] = [
 	asmStackTool,
 	asmGasTool,
 	asmMachoTool,
+	asmArm64Tool,
 ];
 
 const server = new McpServer({

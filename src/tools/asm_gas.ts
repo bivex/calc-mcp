@@ -120,7 +120,7 @@ export function execute(input: Input): string {
 				);
 			const [, dispStr, baseReg, indexReg, scaleStr] = match;
 			const disp = dispStr && dispStr !== "" ? Number(dispStr) : 0;
-			const base = baseReg.slice(1).toLowerCase();
+			const base = String(baseReg).slice(1).toLowerCase();
 			const index = indexReg ? indexReg.slice(1).toLowerCase() : null;
 			const scale = scaleStr ? Number(scaleStr) : index ? 1 : null;
 			// Build Intel [base + index*scale + disp]
