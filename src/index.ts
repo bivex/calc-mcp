@@ -1,3 +1,18 @@
+/**
+ * Copyright (c) 2026 Bivex
+ *
+ * Author: Bivex
+ * Available for contact via email: support@b-b.top
+ * For up-to-date contact information:
+ * https://github.com/bivex
+ *
+ * Created: 2026-03-02 19:12
+ * Last Updated: 2026-03-02 19:12
+ *
+ * Licensed under the MIT License.
+ * Commercial licensing available upon request.
+ */
+
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -7,6 +22,8 @@ import { tool as asmBitwiseTool } from "./tools/asm_bitwise.js";
 import { tool as asmEncodingTool } from "./tools/asm_encoding.js";
 import { tool as asmFlagsTool } from "./tools/asm_flags.js";
 import { tool as asmFloatTool } from "./tools/asm_float.js";
+import { tool as asmGasTool } from "./tools/asm_gas.js";
+import { tool as asmMachoTool } from "./tools/asm_macho.js";
 import { tool as asmMemoryTool } from "./tools/asm_memory.js";
 import { tool as asmNumbersTool } from "./tools/asm_numbers.js";
 import { tool as asmRegistersTool } from "./tools/asm_registers.js";
@@ -77,6 +94,8 @@ const tools: ToolDefinition[] = [
 	asmStructTool,
 	asmFloatTool,
 	asmStackTool,
+	asmGasTool,
+	asmMachoTool,
 ];
 
 const server = new McpServer({
