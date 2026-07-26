@@ -56,6 +56,7 @@ import { tool as hashTool } from "./tools/hash.js";
 import { tool as ipTool } from "./tools/ip.js";
 import { tool as jsonValidateTool } from "./tools/json_validate.js";
 import { tool as jwtDecodeTool } from "./tools/jwt_decode.js";
+import { tool as logicTool } from "./tools/logic.js";
 import { tool as luhnTool } from "./tools/luhn.js";
 import { tool as mathTool } from "./tools/math.js";
 import { tool as randomTool } from "./tools/random.js";
@@ -74,6 +75,7 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	logicTool,
 	graphTool,
 	financeTool,
 	geometryTool,

@@ -31,7 +31,7 @@ export function executeCapabilities(): string {
 		{
 			name: "@coo-quack/calc-mcp",
 			version: versionString,
-			toolsCount: 39,
+			toolsCount: 40,
 			capabilities: {
 				batch: {
 					maxRequests: 50,
@@ -49,6 +49,14 @@ export function executeCapabilities(): string {
 						"version",
 						"request_id",
 						"warnings",
+					],
+				},
+				logic: {
+					features: [
+						"truth_table_generation",
+						"canonical_SDNF_SKNF",
+						"tautology_contradiction_check",
+						"boolean_evaluation",
 					],
 				},
 				graph: {
@@ -146,7 +154,7 @@ export function executeCapabilities(): string {
 export const tool: ToolDefinition = {
 	name: "calc_capabilities",
 	description:
-		"Discover server capabilities, tool counts, batch features, graph topological indices, financial, geometric, and regression models",
+		"Discover server capabilities, tool counts, batch features, boolean logic, graph topological indices, financial, geometric, and regression models",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		inputSchema.parse(args);
