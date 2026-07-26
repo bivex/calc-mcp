@@ -17,9 +17,11 @@ import {
 	cosDependencies,
 	coshDependencies,
 	create,
+	crossDependencies,
 	derivativeDependencies,
 	detDependencies,
 	divideDependencies,
+	dotDependencies,
 	eDependencies,
 	eigsDependencies,
 	equalDependencies,
@@ -38,11 +40,13 @@ import {
 	log2Dependencies,
 	log10Dependencies,
 	logDependencies,
+	lusolveDependencies,
 	matrixDependencies,
 	maxDependencies,
 	minDependencies,
 	modDependencies,
 	multiplyDependencies,
+	normDependencies,
 	nthRootDependencies,
 	permutationsDependencies,
 	piDependencies,
@@ -77,6 +81,10 @@ const math = create(
 		complexDependencies,
 		gammaDependencies,
 		erfDependencies,
+		dotDependencies,
+		crossDependencies,
+		normDependencies,
+		lusolveDependencies,
 		absDependencies,
 		addDependencies,
 		cbrtDependencies,
@@ -142,17 +150,26 @@ const schema = {
 		.string()
 		.optional()
 		.describe(
-			"Math expression to evaluate, differentiate, simplify, or compute matrix operation",
+			"Math expression to evaluate, differentiate, simplify, integrate, or compute matrix operation",
 		),
 	variable: z
 		.string()
 		.optional()
-		.describe("Variable name for symbolic derivative (default: 'x')"),
+		.describe("Variable name for derivative or integration (default: 'x')"),
+	a: z.number().optional().describe("Lower limit of integration"),
+	b: z.number().optional().describe("Upper limit of integration"),
+	steps: z
+		.number()
+		.optional()
+		.describe("Number of subintervals for Simpson integration (default: 1000)"),
 	action: z
 		.enum([
 			"eval",
 			"derivative",
 			"simplify",
+			"integrate",
+			"vector",
+			"solve_linear",
 			"statistics",
 			"det",
 			"inv",
@@ -160,8 +177,22 @@ const schema = {
 		])
 		.optional()
 		.describe(
-			"Action: eval (default), derivative, simplify, statistics, det, inv, or eigs",
+			"Action: eval (default), derivative, simplify, integrate, vector, solve_linear, statistics, det, inv, or eigs",
 		),
+	subAction: z
+		.enum(["dot", "cross", "norm"])
+		.optional()
+		.describe("Sub-action for vector action: dot, cross, or norm"),
+	vector1: z
+		.array(z.number())
+		.optional()
+		.describe(
+			"First vector for vector action or B constants vector for solve_linear",
+		),
+	vector2: z
+		.array(z.number())
+		.optional()
+		.describe("Second vector for dot or cross product"),
 	values: z
 		.array(z.number())
 		.optional()
@@ -169,7 +200,9 @@ const schema = {
 	matrix: z
 		.array(z.array(z.number()))
 		.optional()
-		.describe("2D matrix for det, inv, or eigs actions"),
+		.describe(
+			"2D matrix for det, inv, eigs, or A coefficients for solve_linear",
+		),
 };
 
 const inputSchema = z.object(schema);
@@ -235,6 +268,33 @@ function checkSafety(expr: string) {
 	}
 }
 
+function integrateSimpson(
+	expr: string,
+	variable: string,
+	a: number,
+	b: number,
+	subintervals = 1000,
+): number {
+	const n = subintervals % 2 === 0 ? subintervals : subintervals + 1;
+	const h = (b - a) / n;
+
+	const evalAt = (x: number): number => {
+		const val = math.evaluate(expr, {
+			[variable]: math.bignumber(Number(x.toFixed(12))),
+		});
+		return typeof val === "number"
+			? val
+			: Number(math.format(val, { precision: 14 }));
+	};
+
+	let sum = evalAt(a) + evalAt(b);
+	for (let i = 1; i < n; i++) {
+		const x = a + i * h;
+		sum += (i % 2 === 0 ? 2 : 4) * evalAt(x);
+	}
+	return (h / 3) * sum;
+}
+
 export function execute(input: Input): string {
 	const action = input.action ?? "eval";
 
@@ -258,6 +318,95 @@ export function execute(input: Input): string {
 		checkSafety(input.expression);
 		const simp = math.simplify(input.expression);
 		return simp.toString();
+	}
+
+	if (action === "integrate") {
+		if (!input.expression)
+			throw new Error("expression is required for integrate");
+		if (input.a === undefined || input.b === undefined)
+			throw new Error(
+				"a (lower bound) and b (upper bound) are required for integrate",
+			);
+		checkSafety(input.expression);
+
+		const variable = input.variable ?? "x";
+		const result = integrateSimpson(
+			input.expression,
+			variable,
+			input.a,
+			input.b,
+			input.steps ?? 1000,
+		);
+
+		return JSON.stringify({
+			expression: input.expression,
+			variable,
+			a: input.a,
+			b: input.b,
+			integral: Number(result.toFixed(6)),
+		});
+	}
+
+	if (action === "vector") {
+		const subAction = input.subAction ?? "dot";
+		const v1 = input.vector1;
+		if (!v1 || v1.length === 0)
+			throw new Error("vector1 is required for vector action");
+
+		if (subAction === "norm") {
+			const normVal = math.norm(v1);
+			return JSON.stringify({
+				vector: v1,
+				norm:
+					typeof normVal === "number" ? Number(normVal.toFixed(6)) : normVal,
+			});
+		}
+
+		const v2 = input.vector2;
+		if (!v2 || v2.length === 0)
+			throw new Error("vector2 is required for dot or cross product");
+
+		if (subAction === "dot") {
+			const dotVal = math.dot(v1, v2);
+			return JSON.stringify({
+				vector1: v1,
+				vector2: v2,
+				dotProduct:
+					typeof dotVal === "number" ? Number(dotVal.toFixed(6)) : dotVal,
+			});
+		}
+
+		if (subAction === "cross") {
+			const crossVal = math.cross(v1, v2);
+			return JSON.stringify({
+				vector1: v1,
+				vector2: v2,
+				crossProduct: crossVal,
+			});
+		}
+	}
+
+	if (action === "solve_linear") {
+		const m = input.matrix;
+		const b = input.vector1;
+		if (!m || !b)
+			throw new Error(
+				"matrix (A) and vector1 (B) are required for solve_linear (A * x = b)",
+			);
+
+		const solution = math.lusolve(m, b);
+		const formattedSolution = (
+			Array.isArray(solution)
+				? solution.map((row) => (Array.isArray(row) ? row[0] : row))
+				: solution
+		) as number[];
+
+		return JSON.stringify({
+			system: "A * x = b",
+			matrixA: m,
+			vectorB: b,
+			solution: formattedSolution,
+		});
 	}
 
 	if (action === "det") {
@@ -303,7 +452,7 @@ export function execute(input: Input): string {
 export const tool: ToolDefinition = {
 	name: "math",
 	description:
-		"High precision math calculator: evaluate expressions, symbolic derivatives, simplification, complex numbers, matrices (det, inv, eigs), and statistics",
+		"High precision math calculator: evaluate expressions, symbolic derivatives, numerical integration (Simpson), vector analysis (dot, cross, norm), linear equation solver (A*x=b), complex numbers, matrices (det, inv, eigs), and statistics",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);

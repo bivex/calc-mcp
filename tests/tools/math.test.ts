@@ -32,6 +32,68 @@ describe("math", () => {
 		expect(result).toBe("5 * x");
 	});
 
+	test("numerical integration (Simpson rule)", () => {
+		const result = JSON.parse(
+			execute({
+				action: "integrate",
+				expression: "x^2",
+				variable: "x",
+				a: 0,
+				b: 3,
+			}),
+		);
+		expect(result.integral).toBe(9);
+	});
+
+	test("vector dot product", () => {
+		const result = JSON.parse(
+			execute({
+				action: "vector",
+				subAction: "dot",
+				vector1: [1, 2, 3],
+				vector2: [4, 5, 6],
+			}),
+		);
+		expect(result.dotProduct).toBe(32);
+	});
+
+	test("vector cross product", () => {
+		const result = JSON.parse(
+			execute({
+				action: "vector",
+				subAction: "cross",
+				vector1: [1, 0, 0],
+				vector2: [0, 1, 0],
+			}),
+		);
+		expect(result.crossProduct).toEqual([0, 0, 1]);
+	});
+
+	test("vector norm", () => {
+		const result = JSON.parse(
+			execute({
+				action: "vector",
+				subAction: "norm",
+				vector1: [3, 4],
+			}),
+		);
+		expect(result.norm).toBe(5);
+	});
+
+	test("linear system solver (A * x = b)", () => {
+		const result = JSON.parse(
+			execute({
+				action: "solve_linear",
+				matrix: [
+					[2, 1],
+					[1, -1],
+				],
+				vector1: [5, 1],
+			}),
+		);
+		expect(result.solution).toEqual([2, 1]);
+	});
+
 	test("matrix determinant action", () => {
 		const result = execute({
 			action: "det",
