@@ -148,31 +148,111 @@ function findFeedbackArcSet(g: ParsedDigraph): {
 	feedbackEdges: [number, number][];
 	remainingAcyclicEdges: [number, number][];
 } {
-	// Greedy feedback arc set ordering heuristic (Eades et al.)
-	const sccs = findSCC(g);
-	const feedbackEdges: [number, number][] = [];
-	const acyclicEdges: [number, number][] = [];
+	// Eades-Lin-Smyth (1993) heuristic for Feedback Arc Set
+	const activeNodes = new Set<number>(g.nodes);
+	const inDeg = new Map<number, number>(g.inDegree);
+	const outDeg = new Map<number, number>(g.outDegree);
+	const adj = new Map<number, Set<number>>();
 
-	// Map each node to its SCC index
-	const nodeToScc = new Map<number, number>();
-	sccs.forEach((scc, idx) => {
-		for (const node of scc) nodeToScc.set(node, idx);
-	});
+	for (const [u, neighbors] of g.adj.entries()) {
+		adj.set(u, new Set(neighbors));
+	}
 
-	// For edges inside non-trivial SCCs (cycles), remove back-edges
-	for (const [u, v] of g.edges) {
-		if (
-			u >= v &&
-			nodeToScc.get(u) === nodeToScc.get(v) &&
-			(g.adj.get(v) ?? []).includes(u)
-		) {
-			feedbackEdges.push([u, v]);
-		} else {
-			acyclicEdges.push([u, v]);
+	const s1: number[] = [];
+	const s2: number[] = [];
+
+	while (activeNodes.size > 0) {
+		// 1. Remove sinks
+		let sinkFound = true;
+		while (sinkFound) {
+			sinkFound = false;
+			for (const node of activeNodes) {
+				if ((outDeg.get(node) ?? 0) === 0) {
+					s2.unshift(node);
+					activeNodes.delete(node);
+					sinkFound = true;
+					// Update in-degrees of neighbors
+					for (const u of activeNodes) {
+						if (adj.get(u)?.has(node)) {
+							adj.get(u)?.delete(node);
+							outDeg.set(u, (outDeg.get(u) ?? 1) - 1);
+						}
+					}
+					break;
+				}
+			}
+		}
+
+		// 2. Remove sources
+		let sourceFound = true;
+		while (sourceFound) {
+			sourceFound = false;
+			for (const node of activeNodes) {
+				if ((inDeg.get(node) ?? 0) === 0) {
+					s1.push(node);
+					activeNodes.delete(node);
+					sourceFound = true;
+					// Update out-degrees of targets
+					const targets = adj.get(node) ?? new Set();
+					for (const v of targets) {
+						inDeg.set(v, (inDeg.get(v) ?? 1) - 1);
+					}
+					break;
+				}
+			}
+		}
+
+		// 3. Select vertex with max (outDeg - inDeg)
+		if (activeNodes.size > 0) {
+			let maxVal = -Infinity;
+			let maxNode = -1;
+
+			for (const node of activeNodes) {
+				const diff = (outDeg.get(node) ?? 0) - (inDeg.get(node) ?? 0);
+				if (diff > maxVal) {
+					maxVal = diff;
+					maxNode = node;
+				}
+			}
+
+			if (maxNode !== -1) {
+				s1.push(maxNode);
+				activeNodes.delete(maxNode);
+				// Update degrees
+				const targets = adj.get(maxNode) ?? new Set();
+				for (const v of targets) {
+					inDeg.set(v, (inDeg.get(v) ?? 1) - 1);
+				}
+				for (const u of activeNodes) {
+					if (adj.get(u)?.has(maxNode)) {
+						adj.get(u)?.delete(maxNode);
+						outDeg.set(u, (outDeg.get(u) ?? 1) - 1);
+					}
+				}
+			}
 		}
 	}
 
-	return { feedbackEdges, remainingAcyclicEdges: acyclicEdges };
+	const order = [...s1, ...s2];
+	const pos = new Map<number, number>();
+	order.forEach((node, idx) => {
+		pos.set(node, idx);
+	});
+
+	const feedbackEdges: [number, number][] = [];
+	const remainingAcyclicEdges: [number, number][] = [];
+
+	for (const [u, v] of g.edges) {
+		const posU = pos.get(u) ?? 0;
+		const posV = pos.get(v) ?? 0;
+		if (posU > posV) {
+			feedbackEdges.push([u, v]);
+		} else {
+			remainingAcyclicEdges.push([u, v]);
+		}
+	}
+
+	return { feedbackEdges, remainingAcyclicEdges };
 }
 
 function calculatePageRank(
@@ -286,7 +366,7 @@ export function execute(input: Input): string {
 export const tool: ToolDefinition = {
 	name: "digraph",
 	description:
-		"Directed graph algorithms: Strongly Connected Components (Tarjan), Topological Sorting (Kahn), Feedback Arc Set (FAS), and PageRank vector calculation",
+		"Directed graph algorithms: Strongly Connected Components (Tarjan), Topological Sorting (Kahn), Feedback Arc Set (FAS - Eades-Lin-Smyth), and PageRank vector calculation",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);
