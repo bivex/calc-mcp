@@ -13,6 +13,7 @@
  * Commercial licensing available upon request.
  */
 
+import { randomUUID } from "node:crypto";
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -38,6 +39,7 @@ const { version } = require("../package.json") as { version: string };
 import { sanitizeErrorMessage } from "./sanitization.js";
 import { tool as base64Tool } from "./tools/base64.js";
 import { tool as batchTool, setBatchToolResolver } from "./tools/batch.js";
+import { tool as capabilitiesTool } from "./tools/capabilities.js";
 import { tool as charInfoTool } from "./tools/char_info.js";
 import { tool as colorTool } from "./tools/color.js";
 import { tool as convertTool } from "./tools/convert.js";
@@ -66,6 +68,7 @@ export interface ToolDefinition {
 }
 
 const tools: ToolDefinition[] = [
+	capabilitiesTool,
 	batchTool,
 	randomTool,
 	hashTool,
@@ -119,6 +122,7 @@ for (const tool of tools) {
 		async (args: Record<string, unknown>) => {
 			const start = performance.now();
 			const useEnvelope = args._envelope === true;
+			const requestId = randomUUID();
 
 			try {
 				const rawResult = await tool.handler(args);
@@ -138,6 +142,9 @@ for (const tool of tools) {
 							execution_ms: duration,
 							tool: tool.name,
 							version,
+							request_id: requestId,
+							cached: false,
+							warnings: [],
 						},
 					};
 					return {
@@ -165,6 +172,9 @@ for (const tool of tools) {
 							execution_ms: duration,
 							tool: tool.name,
 							version,
+							request_id: requestId,
+							cached: false,
+							warnings: [],
 						},
 					};
 					return {

@@ -50,6 +50,37 @@ describe("batch tool", () => {
 		expect(res.results[1].result.result).toBe(10000);
 	});
 
+	test("supports step variable referencing ($0.result)", async () => {
+		const responseStr = await executeBatch({
+			mode: "sequential",
+			requests: [
+				{ tool: "math", args: { expression: "50 * 2" } },
+				{ tool: "convert", args: { value: "$0.result", from: "km", to: "m" } },
+			],
+		});
+
+		const res = JSON.parse(responseStr);
+		expect(res.count).toBe(2);
+		expect(res.results[0].result).toBe(100);
+		expect(res.results[1].result.result).toBe(100000);
+	});
+
+	test("supports parallel execution mode", async () => {
+		const responseStr = await executeBatch({
+			mode: "parallel",
+			requests: [
+				{ tool: "math", args: { expression: "1 + 1" } },
+				{ tool: "math", args: { expression: "2 + 2" } },
+			],
+		});
+
+		const res = JSON.parse(responseStr);
+		expect(res.mode).toBe("parallel");
+		expect(res.count).toBe(2);
+		expect(res.results[0].result).toBe(2);
+		expect(res.results[1].result).toBe(4);
+	});
+
 	test("handles errors in individual batch requests gracefully", async () => {
 		const responseStr = await executeBatch({
 			requests: [
