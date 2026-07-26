@@ -31,7 +31,7 @@ export function executeCapabilities(): string {
 		{
 			name: "@coo-quack/calc-mcp",
 			version: versionString,
-			toolsCount: 35,
+			toolsCount: 38,
 			capabilities: {
 				batch: {
 					maxRequests: 50,
@@ -59,9 +59,36 @@ export function executeCapabilities(): string {
 						"arithmetic",
 						"trigonometry",
 						"matrices",
+						"symbolic_derivatives",
+						"expression_simplification",
+						"matrix_det_inv_eigs",
 						"combinatorics",
 						"statistics",
-						"logarithms",
+					],
+				},
+				finance: {
+					features: [
+						"loan_payments_annuity_differentiated",
+						"npv",
+						"irr",
+						"cagr",
+						"compound_interest",
+					],
+				},
+				geometry: {
+					features: [
+						"haversine_gps_distance",
+						"polygon_area_perimeter_shoelace",
+						"shape_3d_volume_surface_area",
+					],
+				},
+				regression: {
+					features: [
+						"linear_regression",
+						"slope_intercept",
+						"pearson_r",
+						"r_squared",
+						"predict_y",
 					],
 				},
 				convert: {
@@ -100,7 +127,7 @@ export function executeCapabilities(): string {
 export const tool: ToolDefinition = {
 	name: "calc_capabilities",
 	description:
-		"Discover server capabilities, tool counts, batch features, and supported measurement units",
+		"Discover server capabilities, tool counts, batch features, financial, geometric, and regression models",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		inputSchema.parse(args);

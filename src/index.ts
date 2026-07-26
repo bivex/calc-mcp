@@ -49,6 +49,8 @@ import { tool as dateTool } from "./tools/date.js";
 import { tool as datetimeTool } from "./tools/datetime.js";
 import { tool as diffTool } from "./tools/diff.js";
 import { tool as encodeTool } from "./tools/encode.js";
+import { tool as financeTool } from "./tools/finance.js";
+import { tool as geometryTool } from "./tools/geometry.js";
 import { tool as hashTool } from "./tools/hash.js";
 import { tool as ipTool } from "./tools/ip.js";
 import { tool as jsonValidateTool } from "./tools/json_validate.js";
@@ -57,6 +59,7 @@ import { tool as luhnTool } from "./tools/luhn.js";
 import { tool as mathTool } from "./tools/math.js";
 import { tool as randomTool } from "./tools/random.js";
 import { tool as regexTool } from "./tools/regex.js";
+import { tool as regressionTool } from "./tools/regression.js";
 import { tool as semverTool } from "./tools/semver.js";
 import { tool as urlParseTool } from "./tools/url_parse.js";
 
@@ -70,6 +73,9 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	financeTool,
+	geometryTool,
+	regressionTool,
 	randomTool,
 	hashTool,
 	base64Tool,
