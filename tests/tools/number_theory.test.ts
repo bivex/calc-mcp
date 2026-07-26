@@ -41,4 +41,16 @@ describe("number_theory tool", () => {
 		);
 		expect(result.fractionalSum).toBeGreaterThan(0);
 	});
+
+	test("calculates Erdős #979 prime-power representations for n = 34", () => {
+		const result = JSON.parse(
+			execute({
+				action: "erdos_979",
+				n: 34,
+				k: 2,
+			}),
+		);
+		expect(result.representationCount_f_k).toBe(1);
+		expect(result.primeTuples).toEqual([[3, 5]]); // 3^2 + 5^2 = 9 + 25 = 34
+	});
 });

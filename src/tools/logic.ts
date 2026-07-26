@@ -8,10 +8,10 @@ const schema = {
 			"Boolean logic expression, e.g. '(A AND B) OR NOT C', 'A && B || !C', 'A -> B'",
 		),
 	action: z
-		.enum(["truth_table", "canonical", "evaluate"])
+		.enum(["truth_table", "canonical", "evaluate", "cnf_dimacs"])
 		.optional()
 		.describe(
-			"Action: truth_table (default), canonical (SDNF/SKNF), or evaluate",
+			"Action: truth_table (default), canonical (SDNF/SKNF), evaluate, or cnf_dimacs (DIMACS CNF format for SAT/SMT solvers)",
 		),
 	values: z
 		.record(z.boolean())
@@ -78,7 +78,6 @@ function evaluateLogic(
 	const keys = Object.keys(assignment);
 	const vals = Object.values(assignment);
 
-	// Evaluate using Function constructor in a restricted scope
 	try {
 		const fn = new Function(...keys, `return Boolean(${normalized});`);
 		return Boolean(fn(...vals));
@@ -110,7 +109,7 @@ export function execute(input: Input): string {
 	}
 	if (vars.length > 10) {
 		throw new Error(
-			"Too many variables (maximum 10 variables allowed for truth table)",
+			"Too many variables (maximum 10 variables allowed for truth table/CNF)",
 		);
 	}
 
@@ -123,13 +122,18 @@ export function execute(input: Input): string {
 
 	const minterms: string[] = [];
 	const maxterms: string[] = [];
+	const dimacsClauses: string[] = [];
+
+	const varToId = new Map<string, number>();
+	vars.forEach((v, idx) => {
+		varToId.set(v, idx + 1);
+	});
 
 	for (let i = 0; i < numRows; i++) {
 		const assignment: Record<string, boolean> = {};
 		for (let j = 0; j < vars.length; j++) {
 			const varName = vars[j];
 			if (!varName) continue;
-			// MSB first for standard truth table ordering (0 0 0 -> 1 1 1)
 			const bit = Boolean((i >> (vars.length - 1 - j)) & 1);
 			assignment[varName] = bit;
 		}
@@ -139,14 +143,19 @@ export function execute(input: Input): string {
 
 		if (res) {
 			trueCount++;
-			// Build SDNF minterm
 			const mintermParts = vars.map((v) => (assignment[v] ? v : `NOT ${v}`));
 			minterms.push(`(${mintermParts.join(" AND ")})`);
 		} else {
 			falseCount++;
-			// Build SKNF maxterm
 			const maxtermParts = vars.map((v) => (assignment[v] ? `NOT ${v}` : v));
 			maxterms.push(`(${maxtermParts.join(" OR ")})`);
+
+			// Build DIMACS CNF clause (negation of false row)
+			const clauseLiterals = vars.map((v) => {
+				const id = varToId.get(v) ?? 0;
+				return assignment[v] ? -id : id;
+			});
+			dimacsClauses.push(`${clauseLiterals.join(" ")} 0`);
 		}
 	}
 
@@ -154,6 +163,26 @@ export function execute(input: Input): string {
 	const isContradiction = trueCount === 0;
 	const sdnf = minterms.length > 0 ? minterms.join(" OR ") : "FALSE";
 	const sknf = maxterms.length > 0 ? maxterms.join(" AND ") : "TRUE";
+
+	if (input.action === "cnf_dimacs") {
+		const varMapping = vars
+			.map((v) => `c ${v} -> ${varToId.get(v)}`)
+			.join("\n");
+		const header = `p cnf ${vars.length} ${dimacsClauses.length}`;
+		const dimacsString = [varMapping, header, ...dimacsClauses].join("\n");
+
+		return JSON.stringify(
+			{
+				expression: expr,
+				variableCount: vars.length,
+				clauseCount: dimacsClauses.length,
+				variableMapping: Object.fromEntries(varToId),
+				dimacsCnfFormat: dimacsString,
+			},
+			null,
+			2,
+		);
+	}
 
 	if (input.action === "canonical") {
 		return JSON.stringify(
@@ -189,7 +218,7 @@ export function execute(input: Input): string {
 export const tool: ToolDefinition = {
 	name: "logic",
 	description:
-		"Boolean logic calculator: generate truth tables, canonical normal forms (SDNF/SKNF), tautology/contradiction checks, and expression evaluations",
+		"Boolean logic calculator: generate truth tables, canonical normal forms (SDNF/SKNF), DIMACS CNF for SAT/SMT solvers, tautology/contradiction checks, and expression evaluations",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);

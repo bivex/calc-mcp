@@ -3,18 +3,20 @@ import type { ToolDefinition } from "../index.js";
 
 const schema = {
 	action: z
-		.enum(["divisors", "fractional_sum", "gauss_circle", "mobius"])
+		.enum(["divisors", "fractional_sum", "gauss_circle", "mobius", "erdos_979"])
 		.describe(
-			"Number theory action: divisors, fractional_sum, gauss_circle, or mobius",
+			"Number theory action: divisors, fractional_sum, gauss_circle, mobius, or erdos_979",
 		),
 	n: z
 		.number()
 		.optional()
-		.describe("Number n for divisors, mobius, or fractional_sum"),
+		.describe("Number n for divisors, mobius, fractional_sum, or erdos_979"),
 	k: z
 		.number()
 		.optional()
-		.describe("Power k for divisor sum sigma_k (default: 1)"),
+		.describe(
+			"Power k for divisor sum sigma_k or erdos_979 power k (default: 1 for divisors, 2 for erdos_979)",
+		),
 	radius: z.number().optional().describe("Radius R for Gauss circle problem"),
 	sequence: z
 		.enum(["fibonacci", "lucas", "natural"])
@@ -24,6 +26,16 @@ const schema = {
 
 const inputSchema = z.object(schema);
 type Input = z.infer<typeof inputSchema>;
+
+function isPrime(num: number): boolean {
+	if (num < 2) return false;
+	if (num === 2 || num === 3) return true;
+	if (num % 2 === 0 || num % 3 === 0) return false;
+	for (let i = 5; i * i <= num; i += 6) {
+		if (num % i === 0 || num % (i + 2) === 0) return false;
+	}
+	return true;
+}
 
 function getDivisors(n: number): number[] {
 	if (n <= 0) throw new Error("n must be a positive integer");
@@ -145,6 +157,52 @@ function calculateGaussCircle(R: number): string {
 	});
 }
 
+function calculateErdos979(n: number, k = 2): string {
+	if (n <= 0) throw new Error("n must be positive for erdos_979");
+	if (k < 2 || k > 4) throw new Error("k must be 2, 3, or 4 for erdos_979");
+
+	const maxPrime = Math.floor(n ** (1 / k));
+	const primes: number[] = [];
+	for (let p = 2; p <= maxPrime; p++) {
+		if (isPrime(p)) primes.push(p);
+	}
+
+	const primeTuples: number[][] = [];
+
+	function search(
+		startIdx: number,
+		currentSum: number,
+		currentTuple: number[],
+	) {
+		if (currentTuple.length === k) {
+			if (currentSum === n) {
+				primeTuples.push([...currentTuple]);
+			}
+			return;
+		}
+
+		for (let i = startIdx; i < primes.length; i++) {
+			const p = primes[i];
+			if (p === undefined) continue;
+			const pPow = p ** k;
+			if (currentSum + pPow > n) break;
+			currentTuple.push(p);
+			search(i, currentSum + pPow, currentTuple);
+			currentTuple.pop();
+		}
+	}
+
+	search(0, 0, []);
+
+	return JSON.stringify({
+		n,
+		k,
+		maxPrimeLimit: maxPrime,
+		representationCount_f_k: primeTuples.length,
+		primeTuples,
+	});
+}
+
 export function execute(input: Input): string {
 	switch (input.action) {
 		case "divisors": {
@@ -177,13 +235,19 @@ export function execute(input: Input): string {
 				mobius: mobius(n),
 			});
 		}
+		case "erdos_979": {
+			const n = input.n;
+			if (n === undefined) throw new Error("n is required for erdos_979");
+			const k = input.k ?? 2;
+			return calculateErdos979(n, k);
+		}
 	}
 }
 
 export const tool: ToolDefinition = {
 	name: "number_theory",
 	description:
-		"Number theory calculator: divisors list and sigma_k sum, Mobius function, Gauss circle problem lattice points, and fractional part sums for Fibonacci/Lucas sequences",
+		"Number theory calculator: divisors list and sigma_k sum, Mobius function, Gauss circle problem lattice points, fractional part sums, and Erdős #979 prime-power representations f_k(n)",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);

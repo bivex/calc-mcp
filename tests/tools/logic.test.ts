@@ -45,4 +45,15 @@ describe("logic tool", () => {
 		);
 		expect(result.result).toBe(false);
 	});
+
+	test("generates DIMACS CNF format for SAT solver", () => {
+		const result = JSON.parse(
+			execute({
+				action: "cnf_dimacs",
+				expression: "A -> B",
+			}),
+		);
+		expect(result.variableCount).toBe(2);
+		expect(result.dimacsCnfFormat).toContain("p cnf 2 1");
+	});
 });
