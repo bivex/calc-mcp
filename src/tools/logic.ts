@@ -72,7 +72,6 @@ function normalizeExpression(expr: string): string {
 
 function evaluateLogic(
 	expr: string,
-	vars: string[],
 	assignment: Record<string, boolean>,
 ): boolean {
 	const normalized = normalizeExpression(expr);
@@ -98,7 +97,7 @@ export function execute(input: Input): string {
 
 	if (input.action === "evaluate") {
 		const assignments = input.values ?? {};
-		const result = evaluateLogic(expr, vars, assignments);
+		const result = evaluateLogic(expr, assignments);
 		return JSON.stringify({
 			expression: expr,
 			assignments,
@@ -135,7 +134,7 @@ export function execute(input: Input): string {
 			assignment[varName] = bit;
 		}
 
-		const res = evaluateLogic(expr, vars, assignment);
+		const res = evaluateLogic(expr, assignment);
 		tableRows.push({ inputs: assignment, output: res });
 
 		if (res) {

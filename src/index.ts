@@ -41,6 +41,7 @@ import { tool as base64Tool } from "./tools/base64.js";
 import { tool as batchTool, setBatchToolResolver } from "./tools/batch.js";
 import { tool as capabilitiesTool } from "./tools/capabilities.js";
 import { tool as charInfoTool } from "./tools/char_info.js";
+import { tool as codingTheoryTool } from "./tools/coding_theory.js";
 import { tool as colorTool } from "./tools/color.js";
 import { tool as convertTool } from "./tools/convert.js";
 import { tool as countTool } from "./tools/count.js";
@@ -63,6 +64,7 @@ import { tool as randomTool } from "./tools/random.js";
 import { tool as regexTool } from "./tools/regex.js";
 import { tool as regressionTool } from "./tools/regression.js";
 import { tool as semverTool } from "./tools/semver.js";
+import { tool as sequencesTool } from "./tools/sequences.js";
 import { tool as urlParseTool } from "./tools/url_parse.js";
 
 export interface ToolDefinition {
@@ -75,6 +77,8 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	sequencesTool,
+	codingTheoryTool,
 	logicTool,
 	graphTool,
 	financeTool,
