@@ -62,6 +62,7 @@ import { tool as logicTool } from "./tools/logic.js";
 import { tool as luhnTool } from "./tools/luhn.js";
 import { tool as mathTool } from "./tools/math.js";
 import { tool as numberTheoryTool } from "./tools/number_theory.js";
+import { tool as qCalculusTool } from "./tools/q_calculus.js";
 import { tool as randomTool } from "./tools/random.js";
 import { tool as regexTool } from "./tools/regex.js";
 import { tool as regressionTool } from "./tools/regression.js";
@@ -79,6 +80,7 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	qCalculusTool,
 	digraphTool,
 	numberTheoryTool,
 	sequencesTool,
