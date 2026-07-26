@@ -13,19 +13,26 @@ import {
 	cbrtDependencies,
 	ceilDependencies,
 	combinationsDependencies,
+	complexDependencies,
 	cosDependencies,
 	coshDependencies,
 	create,
+	derivativeDependencies,
+	detDependencies,
 	divideDependencies,
 	eDependencies,
+	eigsDependencies,
 	equalDependencies,
+	erfDependencies,
 	evaluateDependencies,
 	expDependencies,
 	factorialDependencies,
 	fixDependencies,
 	floorDependencies,
 	formatDependencies,
+	gammaDependencies,
 	gcdDependencies,
+	invDependencies,
 	largerDependencies,
 	lcmDependencies,
 	log2Dependencies,
@@ -42,6 +49,7 @@ import {
 	powDependencies,
 	roundDependencies,
 	signDependencies,
+	simplifyDependencies,
 	sinDependencies,
 	sinhDependencies,
 	smallerDependencies,
@@ -55,16 +63,20 @@ import { z } from "zod";
 import type { ToolDefinition } from "../index.js";
 import { assertExists } from "../utils.js";
 
-// Create mathjs instance with only the functions we need.
-// Selective imports enable tree-shaking at build time, significantly reducing
-// bundle size compared to importing `all` (~46% reduction in mathjs portion).
-// Dangerous functions (import, createUnit, derivative, parser, etc.) are
-// excluded by design since they are simply not imported.
+// Create mathjs instance with selective dependency imports
 const math = create(
 	{
 		evaluateDependencies,
 		bignumberDependencies,
 		formatDependencies,
+		derivativeDependencies,
+		simplifyDependencies,
+		detDependencies,
+		invDependencies,
+		eigsDependencies,
+		complexDependencies,
+		gammaDependencies,
+		erfDependencies,
 		absDependencies,
 		addDependencies,
 		cbrtDependencies,
@@ -118,10 +130,6 @@ const math = create(
 	},
 );
 
-// Runtime safety check patterns using word boundaries to avoid false positives
-// (e.g., "important" should not be blocked by matching "import").
-// Defence in depth: even though dangerous functions are not imported above,
-// we still block suspicious patterns at the expression level.
 const DANGEROUS_PATTERNS = [
 	/\bimport\b/,
 	/\bcreateUnit\b/,
@@ -130,15 +138,38 @@ const DANGEROUS_PATTERNS = [
 ];
 
 const schema = {
-	expression: z.string().optional().describe("Math expression to evaluate"),
-	action: z
-		.enum(["eval", "statistics"])
+	expression: z
+		.string()
 		.optional()
-		.describe("Action: eval (default) or statistics"),
+		.describe(
+			"Math expression to evaluate, differentiate, simplify, or compute matrix operation",
+		),
+	variable: z
+		.string()
+		.optional()
+		.describe("Variable name for symbolic derivative (default: 'x')"),
+	action: z
+		.enum([
+			"eval",
+			"derivative",
+			"simplify",
+			"statistics",
+			"det",
+			"inv",
+			"eigs",
+		])
+		.optional()
+		.describe(
+			"Action: eval (default), derivative, simplify, statistics, det, inv, or eigs",
+		),
 	values: z
 		.array(z.number())
 		.optional()
 		.describe("Array of numbers for statistics"),
+	matrix: z
+		.array(z.array(z.number()))
+		.optional()
+		.describe("2D matrix for det, inv, or eigs actions"),
 };
 
 const inputSchema = z.object(schema);
@@ -149,7 +180,6 @@ function computeStatistics(values: number[]): string {
 
 	const bn = values.map((v) => math.bignumber(v));
 	const sorted = [...bn].sort((a, b) => a.comparedTo(b));
-	// sorted is guaranteed to have at least one element (values.length > 0)
 	const sum = sorted.reduce<BigNumber>(
 		(a, b) => math.add(a, b) as BigNumber,
 		math.bignumber(0),
@@ -197,6 +227,14 @@ function computeStatistics(values: number[]): string {
 	);
 }
 
+function checkSafety(expr: string) {
+	for (const pattern of DANGEROUS_PATTERNS) {
+		if (pattern.test(expr)) {
+			throw new Error(`Unsafe expression detected: ${pattern.source}`);
+		}
+	}
+}
+
 export function execute(input: Input): string {
 	const action = input.action ?? "eval";
 
@@ -205,19 +243,55 @@ export function execute(input: Input): string {
 		return computeStatistics(input.values);
 	}
 
+	if (action === "derivative") {
+		if (!input.expression)
+			throw new Error("expression is required for derivative");
+		checkSafety(input.expression);
+		const variable = input.variable ?? "x";
+		const der = math.derivative(input.expression, variable);
+		return der.toString();
+	}
+
+	if (action === "simplify") {
+		if (!input.expression)
+			throw new Error("expression is required for simplify");
+		checkSafety(input.expression);
+		const simp = math.simplify(input.expression);
+		return simp.toString();
+	}
+
+	if (action === "det") {
+		const m =
+			input.matrix ??
+			(input.expression ? math.evaluate(input.expression) : null);
+		if (!m) throw new Error("matrix array or expression is required for det");
+		const determinant = math.det(m);
+		return typeof determinant === "number" || typeof determinant === "object"
+			? math.format(determinant, { precision: 14 })
+			: String(determinant);
+	}
+
+	if (action === "inv") {
+		const m =
+			input.matrix ??
+			(input.expression ? math.evaluate(input.expression) : null);
+		if (!m) throw new Error("matrix array or expression is required for inv");
+		const inverse = math.inv(m);
+		return JSON.stringify(inverse, null, 2);
+	}
+
+	if (action === "eigs") {
+		const m =
+			input.matrix ??
+			(input.expression ? math.evaluate(input.expression) : null);
+		if (!m) throw new Error("matrix array or expression is required for eigs");
+		const eigen = math.eigs(m);
+		return JSON.stringify(eigen, null, 2);
+	}
+
 	// eval
 	if (!input.expression) throw new Error("expression is required for eval");
-
-	// Check for dangerous patterns before evaluation
-	// Note: mathjs uses its own parser and does not support JavaScript syntax
-	// like bracket notation (['import']) or global objects (window).
-	// Word boundary matching avoids false positives (e.g., "important" won't
-	// be blocked by the "import" pattern).
-	for (const pattern of DANGEROUS_PATTERNS) {
-		if (pattern.test(input.expression)) {
-			throw new Error(`Unsafe expression detected: ${pattern.source}`);
-		}
-	}
+	checkSafety(input.expression);
 
 	const result = math.evaluate(input.expression);
 	if (result?.isInteger?.()) {
@@ -228,7 +302,8 @@ export function execute(input: Input): string {
 
 export const tool: ToolDefinition = {
 	name: "math",
-	description: "Evaluate math expressions or compute statistics on numbers",
+	description:
+		"High precision math calculator: evaluate expressions, symbolic derivatives, simplification, complex numbers, matrices (det, inv, eigs), and statistics",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);

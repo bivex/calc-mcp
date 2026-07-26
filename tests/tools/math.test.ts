@@ -15,6 +15,63 @@ describe("math", () => {
 		expect(result).toBeCloseTo(1);
 	});
 
+	test("symbolic derivative", () => {
+		const result = execute({
+			action: "derivative",
+			expression: "x^3 + 2*x",
+			variable: "x",
+		});
+		expect(result).toBe("3 * x ^ 2 + 2");
+	});
+
+	test("symbolic expression simplification", () => {
+		const result = execute({
+			action: "simplify",
+			expression: "2 * x + 3 * x",
+		});
+		expect(result).toBe("5 * x");
+	});
+
+	test("matrix determinant action", () => {
+		const result = execute({
+			action: "det",
+			matrix: [
+				[1, 2],
+				[3, 4],
+			],
+		});
+		expect(Number(result)).toBeCloseTo(-2);
+	});
+
+	test("matrix inverse action", () => {
+		const result = JSON.parse(
+			execute({
+				action: "inv",
+				matrix: [
+					[1, 2],
+					[3, 4],
+				],
+			}),
+		);
+		expect(result[0][0]).toBeCloseTo(-2);
+		expect(result[0][1]).toBeCloseTo(1);
+		expect(result[1][0]).toBeCloseTo(1.5);
+		expect(result[1][1]).toBeCloseTo(-0.5);
+	});
+
+	test("matrix eigenvalues action", () => {
+		const result = JSON.parse(
+			execute({
+				action: "eigs",
+				matrix: [
+					[1, 2],
+					[2, 1],
+				],
+			}),
+		);
+		expect(result.values).toEqual([-1, 3]);
+	});
+
 	test("computes statistics", () => {
 		const result = JSON.parse(
 			execute({ action: "statistics", values: [1, 2, 3, 4, 5] }),
@@ -72,13 +129,10 @@ describe("math", () => {
 	});
 
 	test("bracket notation is not valid mathjs syntax", () => {
-		// mathjs does not support JavaScript-style bracket notation
-		// This will throw a parse error, not execute dangerous code
 		expect(() => execute({ expression: "['import']" })).toThrow();
 	});
 
 	test("window object is not accessible in mathjs", () => {
-		// mathjs has its own scope and does not have access to global objects
 		expect(() => execute({ expression: "window['import']" })).toThrow();
 	});
 });
