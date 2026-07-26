@@ -17,9 +17,6 @@ function lcs(a: string[], b: string[]): [boolean[], boolean[]] {
 	const m = a.length;
 	const n = b.length;
 	const w = n + 1;
-	// Flat 1D array: dp[i * w + j] = length of LCS of a[0..i-1] and b[0..j-1]
-	// ?? 0 is required by noUncheckedIndexedAccess (tsconfig), which makes array
-	// index access return number | undefined even for pre-filled arrays at compile time.
 	const dp = new Array<number>((m + 1) * w).fill(0);
 
 	for (let i = 1; i <= m; i++) {
@@ -35,7 +32,6 @@ function lcs(a: string[], b: string[]): [boolean[], boolean[]] {
 		}
 	}
 
-	// Backtrack to find which lines are in common
 	const inLcsA: boolean[] = Array(m).fill(false);
 	const inLcsB: boolean[] = Array(n).fill(false);
 	let i = m;
@@ -86,26 +82,33 @@ function lineDiff(text1: string, text2: string): string {
 function levenshteinDistance(s: string, t: string): number {
 	const m = s.length;
 	const n = t.length;
-	const w = n + 1;
-	// Flat 1D array: dp[i * w + j] = edit distance between s[0..i-1] and t[0..j-1]
-	// ?? 0 is required by noUncheckedIndexedAccess (see lcs() comment above).
-	const dp = new Array<number>((m + 1) * w).fill(0);
+	if (m === 0) return n;
+	if (n === 0) return m;
 
-	for (let i = 0; i <= m; i++) dp[i * w] = i;
-	for (let j = 0; j <= n; j++) dp[j] = j;
+	let prev = new Int32Array(n + 1);
+	let curr = new Int32Array(n + 1);
+
+	for (let j = 0; j <= n; j++) prev[j] = j;
 
 	for (let i = 1; i <= m; i++) {
+		curr[0] = i;
+		const sChar = s.charCodeAt(i - 1);
 		for (let j = 1; j <= n; j++) {
-			const cost = s[i - 1] === t[j - 1] ? 0 : 1;
-			dp[i * w + j] = Math.min(
-				(dp[(i - 1) * w + j] ?? 0) + 1,
-				(dp[i * w + (j - 1)] ?? 0) + 1,
-				(dp[(i - 1) * w + (j - 1)] ?? 0) + cost,
-			);
+			const cost = sChar === t.charCodeAt(j - 1) ? 0 : 1;
+			const pJ = prev[j];
+			const cJPrev = curr[j - 1];
+			const pJPrev = prev[j - 1];
+			if (pJ !== undefined && cJPrev !== undefined && pJPrev !== undefined) {
+				curr[j] = Math.min(pJ + 1, cJPrev + 1, pJPrev + cost);
+			}
 		}
+		const tmp = prev;
+		prev = curr;
+		curr = tmp;
 	}
 
-	return dp[m * w + n] ?? 0;
+	const res = prev[n];
+	return res ?? 0;
 }
 
 export function execute(input: Input): string {

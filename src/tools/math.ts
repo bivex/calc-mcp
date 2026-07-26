@@ -13,6 +13,7 @@ import {
 	cbrtDependencies,
 	ceilDependencies,
 	combinationsDependencies,
+	compileDependencies,
 	complexDependencies,
 	cosDependencies,
 	coshDependencies,
@@ -71,6 +72,7 @@ import { assertExists } from "../utils.js";
 const math = create(
 	{
 		evaluateDependencies,
+		compileDependencies,
 		bignumberDependencies,
 		formatDependencies,
 		derivativeDependencies,
@@ -277,9 +279,10 @@ function integrateSimpson(
 ): number {
 	const n = subintervals % 2 === 0 ? subintervals : subintervals + 1;
 	const h = (b - a) / n;
+	const compiled = math.compile(expr);
 
 	const evalAt = (x: number): number => {
-		const val = math.evaluate(expr, {
+		const val = compiled.evaluate({
 			[variable]: math.bignumber(Number(x.toFixed(12))),
 		});
 		return typeof val === "number"
