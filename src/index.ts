@@ -49,6 +49,7 @@ import { tool as cronParseTool } from "./tools/cron_parse.js";
 import { tool as dateTool } from "./tools/date.js";
 import { tool as datetimeTool } from "./tools/datetime.js";
 import { tool as diffTool } from "./tools/diff.js";
+import { tool as digraphTool } from "./tools/digraph.js";
 import { tool as encodeTool } from "./tools/encode.js";
 import { tool as financeTool } from "./tools/finance.js";
 import { tool as geometryTool } from "./tools/geometry.js";
@@ -60,6 +61,7 @@ import { tool as jwtDecodeTool } from "./tools/jwt_decode.js";
 import { tool as logicTool } from "./tools/logic.js";
 import { tool as luhnTool } from "./tools/luhn.js";
 import { tool as mathTool } from "./tools/math.js";
+import { tool as numberTheoryTool } from "./tools/number_theory.js";
 import { tool as randomTool } from "./tools/random.js";
 import { tool as regexTool } from "./tools/regex.js";
 import { tool as regressionTool } from "./tools/regression.js";
@@ -77,6 +79,8 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	digraphTool,
+	numberTheoryTool,
 	sequencesTool,
 	codingTheoryTool,
 	logicTool,

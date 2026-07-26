@@ -31,7 +31,7 @@ export function executeCapabilities(): string {
 		{
 			name: "@coo-quack/calc-mcp",
 			version: versionString,
-			toolsCount: 42,
+			toolsCount: 44,
 			capabilities: {
 				batch: {
 					maxRequests: 50,
@@ -49,6 +49,22 @@ export function executeCapabilities(): string {
 						"version",
 						"request_id",
 						"warnings",
+					],
+				},
+				digraph: {
+					features: [
+						"strongly_connected_components_tarjan",
+						"topological_sort_kahn",
+						"feedback_arc_set_FAS",
+						"pagerank_vector",
+					],
+				},
+				number_theory: {
+					features: [
+						"divisors_list_and_sigma_k",
+						"mobius_function",
+						"gauss_circle_lattice_points",
+						"fractional_part_sums",
 					],
 				},
 				sequences: {
@@ -174,7 +190,7 @@ export function executeCapabilities(): string {
 export const tool: ToolDefinition = {
 	name: "calc_capabilities",
 	description:
-		"Discover server capabilities, tool counts, batch features, integer sequences, coding theory, boolean logic, graph topological indices, financial, geometric, and regression models",
+		"Discover server capabilities, tool counts, batch features, directed graphs, number theory, integer sequences, coding theory, boolean logic, graph topological indices, financial, geometric, and regression models",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		inputSchema.parse(args);
