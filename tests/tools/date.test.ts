@@ -52,4 +52,33 @@ describe("date", () => {
 		const result = execute({ action: "wareki", date: "1985-01-01" });
 		expect(result).toBe("昭和60年1月1日");
 	});
+
+	test("business_days count between two dates", () => {
+		// 2024-01-01 (Mon) to 2024-01-08 (Mon) -> 5 business days (Mon-Fri)
+		const result = JSON.parse(
+			execute({
+				action: "business_days",
+				date: "2024-01-01",
+				date2: "2024-01-08",
+			}),
+		);
+		expect(result.businessDays).toBe(5);
+	});
+
+	test("business_days add N business days skipping weekend", () => {
+		// 2024-01-05 (Fri) + 2 business days -> 2024-01-09 (Tue)
+		const result = JSON.parse(
+			execute({ action: "business_days", date: "2024-01-05", amount: 2 }),
+		);
+		expect(result.resultDate).toBe("2024-01-09");
+	});
+
+	test("iso_week format", () => {
+		const result = JSON.parse(
+			execute({ action: "iso_week", date: "2024-01-01" }),
+		);
+		expect(result.isoWeek).toBe(1);
+		expect(result.isoWeekYear).toBe(2024);
+		expect(result.formatted).toBe("2024-W01");
+	});
 });

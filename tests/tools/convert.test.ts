@@ -52,6 +52,37 @@ describe("convert", () => {
 		expect(result.result).toBe(7);
 	});
 
+	test("bar to psi (pressure)", () => {
+		const result = JSON.parse(execute({ value: 1, from: "bar", to: "psi" }));
+		expect(result.result).toBeCloseTo(14.5038, 3);
+		expect(result.category).toBe("pressure");
+	});
+
+	test("kWh to Joules (energy)", () => {
+		const result = JSON.parse(execute({ value: 1, from: "kwh", to: "j" }));
+		expect(result.result).toBe(3600000);
+		expect(result.category).toBe("energy");
+	});
+
+	test("kW to hp (power)", () => {
+		const result = JSON.parse(execute({ value: 1, from: "kw", to: "hp" }));
+		expect(result.result).toBeCloseTo(1.34102, 3);
+		expect(result.category).toBe("power");
+	});
+
+	test("rem to px with default base font size (typography)", () => {
+		const result = JSON.parse(execute({ value: 1.5, from: "rem", to: "px" }));
+		expect(result.result).toBe(24);
+		expect(result.category).toBe("typography");
+	});
+
+	test("rem to px with custom base font size (typography)", () => {
+		const result = JSON.parse(
+			execute({ value: 2, from: "rem", to: "px", baseFontSize: 20 }),
+		);
+		expect(result.result).toBe(40);
+	});
+
 	test("unknown unit throws with supported list", () => {
 		expect(() => execute({ value: 1, from: "xyz", to: "abc" })).toThrow(
 			"Supported units",

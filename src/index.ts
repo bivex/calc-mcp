@@ -37,6 +37,7 @@ const { version } = require("../package.json") as { version: string };
 
 import { sanitizeErrorMessage } from "./sanitization.js";
 import { tool as base64Tool } from "./tools/base64.js";
+import { tool as batchTool, setBatchToolResolver } from "./tools/batch.js";
 import { tool as charInfoTool } from "./tools/char_info.js";
 import { tool as colorTool } from "./tools/color.js";
 import { tool as convertTool } from "./tools/convert.js";
@@ -65,6 +66,7 @@ export interface ToolDefinition {
 }
 
 const tools: ToolDefinition[] = [
+	batchTool,
 	randomTool,
 	hashTool,
 	base64Tool,
@@ -100,6 +102,10 @@ const tools: ToolDefinition[] = [
 	asmArm64Tool,
 ];
 
+const toolsMap = new Map<string, ToolDefinition>(tools.map((t) => [t.name, t]));
+
+setBatchToolResolver((name) => toolsMap.get(name));
+
 const server = new McpServer({
 	name: "calc-mcp",
 	version,
@@ -111,13 +117,67 @@ for (const tool of tools) {
 		tool.description,
 		tool.schema,
 		async (args: Record<string, unknown>) => {
+			const start = performance.now();
+			const useEnvelope = args._envelope === true;
+
 			try {
-				const result = await tool.handler(args);
+				const rawResult = await tool.handler(args);
+				const duration = Number((performance.now() - start).toFixed(3));
+
+				if (useEnvelope) {
+					let parsed: unknown = rawResult;
+					try {
+						parsed = JSON.parse(rawResult);
+					} catch {
+						// Keep string
+					}
+					const envelope = {
+						success: true,
+						result: parsed,
+						metadata: {
+							execution_ms: duration,
+							tool: tool.name,
+							version,
+						},
+					};
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify(envelope, null, 2),
+							},
+						],
+					};
+				}
+
 				return {
-					content: [{ type: "text" as const, text: result }],
+					content: [{ type: "text" as const, text: rawResult }],
 				};
 			} catch (error) {
+				const duration = Number((performance.now() - start).toFixed(3));
 				const message = sanitizeErrorMessage(tool.name, error, args);
+
+				if (useEnvelope) {
+					const envelope = {
+						success: false,
+						error: message,
+						metadata: {
+							execution_ms: duration,
+							tool: tool.name,
+							version,
+						},
+					};
+					return {
+						content: [
+							{
+								type: "text" as const,
+								text: JSON.stringify(envelope, null, 2),
+							},
+						],
+						isError: true,
+					};
+				}
+
 				return {
 					content: [{ type: "text" as const, text: `Error: ${message}` }],
 					isError: true,

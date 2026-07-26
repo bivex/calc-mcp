@@ -16,9 +16,17 @@ const schema = {
 			"speed",
 			"data",
 			"time",
+			"pressure",
+			"energy",
+			"power",
+			"typography",
 		])
 		.optional()
 		.describe("Category (auto-detected if omitted)"),
+	baseFontSize: z
+		.number()
+		.optional()
+		.describe("Base font size in px for rem/em conversions (default: 16)"),
 };
 
 const inputSchema = z.object(schema);
@@ -111,6 +119,41 @@ const DATA: Record<string, number> = {
 	mbit: 131072,
 };
 
+const PRESSURE: Record<string, number> = {
+	pa: 1,
+	kpa: 1000,
+	bar: 100000,
+	psi: 6894.757293168,
+	atm: 101325,
+	mmhg: 133.322368421,
+};
+
+const ENERGY: Record<string, number> = {
+	j: 1,
+	kj: 1000,
+	cal: 4.184,
+	kcal: 4184,
+	wh: 3600,
+	kwh: 3600000,
+	ev: 1.602176634e-19,
+};
+
+const POWER: Record<string, number> = {
+	w: 1,
+	kw: 1000,
+	mw: 1000000,
+	hp: 745.6998715822702,
+};
+
+const TYPOGRAPHY_BASE: Record<string, number> = {
+	px: 1,
+	pt: 4 / 3,
+	pc: 16,
+	in: 96,
+	cm: 96 / 2.54,
+	mm: 9.6 / 2.54,
+};
+
 type ConversionTable = Record<string, number>;
 
 const CATEGORIES: Record<string, ConversionTable> = {
@@ -121,6 +164,9 @@ const CATEGORIES: Record<string, ConversionTable> = {
 	speed: SPEED,
 	data: DATA,
 	time: TIME,
+	pressure: PRESSURE,
+	energy: ENERGY,
+	power: POWER,
 };
 
 const UNIT_ALIASES: Record<string, string> = {
@@ -202,6 +248,18 @@ const UNIT_ALIASES: Record<string, string> = {
 	hectares: "ha",
 	acre: "acre",
 	acres: "acre",
+	pascal: "pa",
+	pascals: "pa",
+	bar: "bar",
+	bars: "bar",
+	joule: "j",
+	joules: "j",
+	watt: "w",
+	watts: "w",
+	pixel: "px",
+	pixels: "px",
+	point: "pt",
+	points: "pt",
 };
 
 function resolveAlias(unit: string): string {
@@ -211,6 +269,9 @@ function resolveAlias(unit: string): string {
 function findCategory(unit: string): [string, ConversionTable] | null {
 	const resolved = resolveAlias(unit);
 	const lower = resolved.toLowerCase();
+	if (lower === "rem" || lower === "em" || lower in TYPOGRAPHY_BASE) {
+		return ["typography", TYPOGRAPHY_BASE];
+	}
 	for (const [name, table] of Object.entries(CATEGORIES)) {
 		if (lower in table) return [name, table];
 	}
@@ -252,10 +313,32 @@ function isTemperature(unit: string): boolean {
 	return TEMP_UNITS.has(unit.toLowerCase());
 }
 
+function convertTypography(
+	value: number,
+	from: string,
+	to: string,
+	baseFontSize = 16,
+): number {
+	const f = from.toLowerCase();
+	const t = to.toLowerCase();
+
+	const getPxFactor = (u: string): number => {
+		if (u === "rem" || u === "em") return baseFontSize;
+		if (u in TYPOGRAPHY_BASE)
+			return assertExists(TYPOGRAPHY_BASE[u], "typography unit");
+		throw new Error(`Unknown typography unit: ${u}`);
+	};
+
+	const pxVal = value * getPxFactor(f);
+	return pxVal / getPxFactor(t);
+}
+
 export function execute(input: Input): string {
 	const { value } = input;
 	const from = resolveAlias(input.from);
 	const to = resolveAlias(input.to);
+	const fromLower = from.toLowerCase();
+	const toLower = to.toLowerCase();
 
 	// Temperature is special (not linear)
 	if (
@@ -272,11 +355,33 @@ export function execute(input: Input): string {
 		});
 	}
 
+	// Typography conversion
+	if (
+		input.category === "typography" ||
+		fromLower === "rem" ||
+		fromLower === "em" ||
+		toLower === "rem" ||
+		toLower === "em" ||
+		(fromLower in TYPOGRAPHY_BASE &&
+			toLower in TYPOGRAPHY_BASE &&
+			!findCategory(from))
+	) {
+		const result = convertTypography(value, from, to, input.baseFontSize ?? 16);
+		return JSON.stringify({
+			value,
+			from,
+			to,
+			result: Math.round(result * 1000000) / 1000000,
+			category: "typography",
+			baseFontSize: input.baseFontSize ?? 16,
+		});
+	}
+
 	// Find the conversion table
 	let table: ConversionTable | null = null;
 	let category = input.category ?? "";
 
-	if (category && category !== "temperature") {
+	if (category && category !== "temperature" && category !== "typography") {
 		table = CATEGORIES[category] ?? null;
 	} else {
 		const found = findCategory(from);
@@ -288,14 +393,11 @@ export function execute(input: Input): string {
 	if (!table) {
 		const allUnits = Object.values(CATEGORIES)
 			.flatMap((t) => Object.keys(t))
-			.concat([...TEMP_UNITS]);
+			.concat([...TEMP_UNITS], Object.keys(TYPOGRAPHY_BASE), ["rem", "em"]);
 		throw new Error(
 			`Unknown unit: ${from}. Supported units: ${allUnits.join(", ")}`,
 		);
 	}
-
-	const fromLower = from.toLowerCase();
-	const toLower = to.toLowerCase();
 
 	const supported = Object.keys(table).join(", ");
 	if (!(fromLower in table))
@@ -323,7 +425,7 @@ export function execute(input: Input): string {
 export const tool: ToolDefinition = {
 	name: "convert",
 	description:
-		"Convert between units: length, weight, temperature, area, volume, speed, data, time",
+		"Convert between units: length, weight, temperature, area, volume, speed, data, time, pressure, energy, power, typography (px, rem, pt)",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		const input = inputSchema.parse(args);
