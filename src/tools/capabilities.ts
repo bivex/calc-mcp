@@ -31,7 +31,7 @@ export function executeCapabilities(): string {
 		{
 			name: "@coo-quack/calc-mcp",
 			version: versionString,
-			toolsCount: 38,
+			toolsCount: 39,
 			capabilities: {
 				batch: {
 					maxRequests: 50,
@@ -51,6 +51,22 @@ export function executeCapabilities(): string {
 						"warnings",
 					],
 				},
+				graph: {
+					features: [
+						"13_topological_indices",
+						"diminished_sombor_DSO",
+						"sombor_SO",
+						"zagreb_M1_M2_HM",
+						"randic_R",
+						"geometric_arithmetic_GA",
+						"albertson_Alb",
+						"irregularity_sigma_irrt",
+						"harmonic_H",
+						"inverse_sum_ISI",
+						"forgotten_F",
+						"paper_sharp_bounds_comparison",
+					],
+				},
 				math: {
 					engine: "mathjs",
 					numberFormat: "BigNumber",
@@ -61,6 +77,9 @@ export function executeCapabilities(): string {
 						"matrices",
 						"symbolic_derivatives",
 						"expression_simplification",
+						"numerical_integration_simpson",
+						"vector_analysis",
+						"linear_equation_solver",
 						"matrix_det_inv_eigs",
 						"combinatorics",
 						"statistics",
@@ -127,7 +146,7 @@ export function executeCapabilities(): string {
 export const tool: ToolDefinition = {
 	name: "calc_capabilities",
 	description:
-		"Discover server capabilities, tool counts, batch features, financial, geometric, and regression models",
+		"Discover server capabilities, tool counts, batch features, graph topological indices, financial, geometric, and regression models",
 	schema,
 	handler: async (args: Record<string, unknown>) => {
 		inputSchema.parse(args);

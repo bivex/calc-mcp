@@ -51,6 +51,7 @@ import { tool as diffTool } from "./tools/diff.js";
 import { tool as encodeTool } from "./tools/encode.js";
 import { tool as financeTool } from "./tools/finance.js";
 import { tool as geometryTool } from "./tools/geometry.js";
+import { tool as graphTool } from "./tools/graph.js";
 import { tool as hashTool } from "./tools/hash.js";
 import { tool as ipTool } from "./tools/ip.js";
 import { tool as jsonValidateTool } from "./tools/json_validate.js";
@@ -73,6 +74,7 @@ export interface ToolDefinition {
 const tools: ToolDefinition[] = [
 	capabilitiesTool,
 	batchTool,
+	graphTool,
 	financeTool,
 	geometryTool,
 	regressionTool,
